@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en-au">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hospital Staff Roster – Template</title>
+  <style>
+    :root{
+      --bg1:#0f1020; --bg2:#111b3a; --accent:#6df0ff; --accent2:#f6a6ff; --good:#0fd47a; --warn:#ffd166;
+      --text:#e8eef8; --muted:#a7b0c7; --card:#12162b; --glass:rgba(255,255,255,.06);
+      --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+      --radius:18px;
+    }
+    @keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 10% 0%, #1a2a6c 0%, rgba(26,42,108,0) 60%),
+                  radial-gradient(900px 600px at 100% 0%, #b21f1f 0%, rgba(178,31,31,0) 60%),
+                  linear-gradient(135deg, var(--bg1), var(--bg2));
+      background-attachment: fixed;
+    }
+    .wrap{max-width:1300px; margin:40px auto; padding:0 20px}
+    .hero{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border:1px solid rgba(255,255,255,.08);
+      padding:24px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero:before{
+      content:""; position:absolute; inset:-2px; border-radius:calc(var(--radius) + 2px);
+      padding:2px; background:linear-gradient(120deg, rgba(109,240,255,.35), rgba(246,166,255,.35)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    h1{margin:0; font-size: clamp(24px, 4vw, 34px); letter-spacing:.3px}
+    .subtitle{color:var(--muted); margin-top:6px}
+
+    .controls{display:grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap:12px; margin-top:18px}
+    .control{display:flex; flex-direction:column; gap:6px}
+    label{font-size:12px; color:var(--muted)}
+    input[type="text"], input[type="date"], select{
+      background: var(--glass); border:1px solid rgba(255,255,255,.12); color:var(--text);
+      border-radius:12px; padding:10px 12px; outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+
+    .btns{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+    button{
+      border:none; color:#081018; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer;
+      transition: transform .08s ease, box-shadow .2s ease, filter .2s ease;
+      box-shadow: 0 10px 20px rgba(0,0,0,.28);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+    button.secondary{background: linear-gradient(135deg, #89f7fe, #66a6ff)}
+    button.ghost{background: transparent; color: var(--text); border:1px solid rgba(255,255,255,.2)}
+    button.warn{background: linear-gradient(135deg, #ffd166, #ff7b72)}
+    button.good{background: linear-gradient(135deg, #6ee7b7, #3b82f6)}
+    button:hover{filter:saturate(1.1); transform: translateY(-1px)}
+    button:active{transform: translateY(1px)}
+
+    .table-wrap{
+      margin-top:22px; background: rgba(8,11,26,.55); border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius); overflow:auto; box-shadow: var(--shadow);
+      animation: floaty 8s ease-in-out infinite;
+    }
+    table{border-collapse: separate; border-spacing:0; width:100%; min-width:1050px}
+    thead th{
+      position:sticky; top:0; background: rgba(10,15,35,.95); backdrop-filter: blur(6px);
+      z-index:2; text-align:left; font-size:12px; letter-spacing:.4px; color:var(--muted); padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    tbody td{padding:6px 8px; border-bottom:1px solid rgba(255,255,255,.06)}
+    tbody tr:last-child td{border-bottom:none}
+    tbody input, tbody select{
+      width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:var(--text);
+      border-radius:10px; padding:8px 8px; font-size:13px;
+    }
+    .row-actions{display:flex; gap:6px; align-items:center}
+    .totals{
+      margin-top:14px; display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:12px;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:14px; box-shadow: var(--shadow);
+    }
+    .muted{color:var(--muted); font-size:12px}
+    .kpi{font-size:24px; font-weight:800}
+
+    .print-note{margin-top:10px; color:var(--muted); font-size:12px}
+
+    @media print{
+      body{background:#fff; color:#000}
+      .hero, .btns, .print-note{display:none}
+      .table-wrap{animation:none; box-shadow:none}
+      table{min-width:auto}
+      thead th{background:#efefef; color:#111; border-bottom:1px solid #bbb}
+      tbody input, tbody select{background:#fff; color:#000; border:1px solid #bbb}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Hospital Staff Roster – Template</h1>
+      <div class="subtitle">Designed for the Head Nurse to plan weekly staffing. Add/remove staff, choose shifts, auto-calc hours, export/print.</div>
+
+      <div class="controls">
+        <div class="control">
+          <label for="hospital">Hospital / Ward</label>
+          <input id="hospital" type="text" placeholder="e.g., Royal Hobart – ICU" />
+        </div>
+        <div class="control">
+          <label for="manager">Rostered by</label>
+          <input id="manager" type="text" placeholder="Name of Head Nurse" />
+        </div>
+        <div class="control">
+          <label for="week">Week Commencing</label>
+          <input id="week" type="date" />
+        </div>
+        <div class="control">
+          <label for="defaultShift">Default Shift</label>
+          <select id="defaultShift"></select>
+        </div>
+        <div class="control">
+          <label for="notes">Notes</label>
+          <input id="notes" type="text" placeholder="e.g., 2 on leave; skill mix requirements" />
+        </div>
+        <div class="control">
+          <label for="fte">Target FTE / Day</label>
+          <input id="fte" type="text" placeholder="e.g., 5.0" />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="addRowBtn" title="Add staff row">➕ Add Staff</button>
+        <button id="removeRowBtn" class="secondary" title="Remove last staff">➖ Remove Last</button>
+        <button id="clearBtn" class="warn" title="Clear all entries">🧹 Clear Week</button>
+        <button id="saveBtn" class="good" title="Save to browser">💾 Save</button>
+        <button id="loadBtn" class="ghost" title="Load from browser">📂 Load</button>
+        <button id="csvBtn" class="secondary" title="Download CSV">⬇️ Export CSV</button>
+        <button id="printBtn" class="ghost" title="Print / PDF">🖨️ Print</button>
+      </div>
+    </section>
+
+    <div class="table-wrap">
+      <table id="rosterTable" aria-label="Weekly roster">
+        <thead>
+          <tr>
+            <th style="min-width:190px">Staff Member</th>
+            <th style="min-width:120px">Role</th>
+            <th>Mon</th>
+            <th>Tue</th>
+            <th>Wed</th>
+            <th>Thu</th>
+            <th>Fri</th>
+            <th>Sat</th>
+            <th>Sun</th>
+            <th style="min-width:120px">Total Hours</th>
+            <th style="min-width:130px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="totals">
+      <div class="card">
+        <div class="muted">Planned Hours (week)</div>
+        <div class="kpi" id="kpiHours">0</div>
+      </div>
+      <div class="card">
+        <div class="muted">Total Shifts</div>
+        <div class="kpi" id="kpiShifts">0</div>
+      </div>
+      <div class="card">
+        <div class="muted">Nights</div>
+        <div class="kpi" id="kpiNights">0</div>
+      </div>
+      <div class="card">
+        <div class="muted">Days Off</div>
+        <div class="kpi" id="kpiOff">0</div>
+      </div>
+    </div>
+
+    <div class="print-note">Tip: Use the <strong>Print</strong> button to create a PDF. Your data can be saved/loaded in this browser using the Save/Load buttons.</div>
+  </div>
+
+  <script>
+    // --- Shift catalogue ---
+    const SHIFT_TYPES = [
+      { code: "OFF", label: "Off", hours: 0 },
+      { code: "AM", label: "AM 07:00–15:30", hours: 7.5 },
+      { code: "PM", label: "PM 13:00–21:30", hours: 7.5 },
+      { code: "N",  label: "Night 21:00–07:30", hours: 10 },
+      { code: "LD", label: "Leave (Paid)", hours: 7.5 },
+      { code: "TR", label: "Training", hours: 7.5 },
+      { code: "CUS", label: "Custom…", hours: 0 },
+    ];
+
+    const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+    const tbody = document.getElementById('tbody');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const removeRowBtn = document.getElementById('removeRowBtn');
+
+    const hospital = document.getElementById('hospital');
+    const manager = document.getElementById('manager');
+    const week = document.getElementById('week');
+    const notes = document.getElementById('notes');
+    const fte = document.getElementById('fte');
+    const defaultShift = document.getElementById('defaultShift');
+
+    const kpiHours = document.getElementById('kpiHours');
+    const kpiShifts = document.getElementById('kpiShifts');
+    const kpiNights = document.getElementById('kpiNights');
+    const kpiOff = document.getElementById('kpiOff');
+
+    const clearBtn = document.getElementById('clearBtn');
+    const csvBtn = document.getElementById('csvBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    const printBtn = document.getElementById('printBtn');
+
+    // Populate default shift selector
+    SHIFT_TYPES.forEach(s => {
+      if (s.code === 'CUS') return; // not for default
+      const o = document.createElement('option');
+      o.value = s.code; o.textContent = `${s.label}`; defaultShift.appendChild(o);
+    });
+    defaultShift.value = 'AM';
+
+    // Helpers
+    function createShiftSelect(value='OFF'){
+      const sel = document.createElement('select');
+      SHIFT_TYPES.forEach(s=>{
+        const o = document.createElement('option');
+        o.value = s.code; o.textContent = s.label; sel.appendChild(o);
+      });
+      sel.value = value;
+      sel.addEventListener('change', (e)=>{
+        if (sel.value === 'CUS') {
+          const custom = prompt('Enter custom shift label (e.g., 10:00–18:00) and hours separated by comma', '10:00–18:00,7.5');
+          if (custom){
+            const [label, hrs] = custom.split(',').map(s=>s.trim());
+            sel.dataset.customLabel = label || 'Custom';
+            sel.dataset.customHours = isNaN(parseFloat(hrs)) ? '0' : String(parseFloat(hrs));
+          } else {
+            sel.value = 'OFF';
+            delete sel.dataset.customLabel; delete sel.dataset.customHours;
+          }
+        } else {
+          delete sel.dataset.customLabel; delete sel.dataset.customHours;
+        }
+        recalc();
+      });
+      return sel;
+    }
+
+    function hoursFor(select){
+      if (select.value === 'CUS') return parseFloat(select.dataset.customHours || '0') || 0;
+      const s = SHIFT_TYPES.find(x=>x.code===select.value); return s? s.hours : 0;
+    }
+
+    function labelFor(select){
+      if (select.value === 'CUS') return select.dataset.customLabel || 'Custom';
+      const s = SHIFT_TYPES.find(x=>x.code===select.value); return s? s.label : '';
+    }
+
+    function addRow(prefill={ name:'', role:'RN', shifts: {} }){
+      const tr = document.createElement('tr');
+
+      // Staff
+      const tdName = document.createElement('td');
+      const inputName = document.createElement('input'); inputName.type='text'; inputName.placeholder='Full name'; inputName.value=prefill.name||''; inputName.addEventListener('input', recalc);
+      tdName.appendChild(inputName); tr.appendChild(tdName);
+
+      // Role
+      const tdRole = document.createElement('td');
+      const selRole = document.createElement('select');
+      ;['RN','EN','AIN','Team Leader','CNS','NUM','Other'].forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selRole.appendChild(o)});
+      selRole.value = prefill.role||'RN'; selRole.addEventListener('change', recalc); tdRole.appendChild(selRole); tr.appendChild(tdRole);
+
+      // Days
+      DAYS.forEach(d=>{
+        const td = document.createElement('td');
+        const sel = createShiftSelect(prefill.shifts?.[d] || defaultShift.value || 'OFF');
+        sel.addEventListener('change', recalc);
+        td.appendChild(sel); tr.appendChild(td);
+      });
+
+      // Total hours cell
+      const tdTot = document.createElement('td'); tdTot.textContent='0'; tdTot.style.fontWeight='700'; tr.appendChild(tdTot);
+
+      // Actions
+      const tdAct = document.createElement('td');
+      const actions = document.createElement('div'); actions.className='row-actions';
+      const dup = document.createElement('button'); dup.textContent='⎘'; dup.title='Duplicate row'; dup.className='ghost'; dup.addEventListener('click', ()=>{ duplicateRow(tr); });
+      const rm = document.createElement('button'); rm.textContent='✖'; rm.title='Remove row'; rm.className='warn'; rm.addEventListener('click', ()=>{ tr.remove(); recalc(); });
+      actions.append(dup, rm); tdAct.appendChild(actions); tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+      recalc();
+    }
+
+    function duplicateRow(tr){
+      const cells = tr.querySelectorAll('td');
+      const name = cells[0].querySelector('input').value;
+      const role = cells[1].querySelector('select').value;
+      const shifts = {};
+      DAYS.forEach((d, idx)=>{
+        const sel = cells[2+idx].querySelector('select');
+        if (sel.value==='CUS') shifts[d] = { code:'CUS', customLabel: sel.dataset.customLabel, customHours: sel.dataset.customHours };
+        else shifts[d] = sel.value;
+      });
+      // Rebuild using addRow to maintain listeners
+      const pre = { name, role, shifts:{} };
+      DAYS.forEach(d=>{
+        const v = shifts[d];
+        if (typeof v === 'string') pre.shifts[d] = v;
+        else pre.shifts[d] = 'CUS';
+      });
+      addRow(pre);
+      // apply custom
+      const last = tbody.lastElementChild;
+      DAYS.forEach((d, i)=>{
+        const sel = last.children[2+i].querySelector('select');
+        const v = shifts[d];
+        if (typeof v !== 'string'){
+          sel.value = 'CUS'; sel.dataset.customLabel = v.customLabel; sel.dataset.customHours = v.customHours;
+        }
+      });
+      recalc();
+    }
+
+    function recalc(){
+      let totalHours = 0, totalShifts = 0, nights = 0, offs = 0;
+      [...tbody.rows].forEach(row=>{
+        let rowHours = 0;
+        DAYS.forEach((d, idx)=>{
+          const sel = row.cells[2+idx].querySelector('select');
+          const h = hoursFor(sel);
+          rowHours += h;
+          if (sel.value !== 'OFF') totalShifts++;
+          if (sel.value === 'N') nights++;
+          if (sel.value === 'OFF') offs++;
+        });
+        row.cells[9].textContent = rowHours.toFixed(1);
+        totalHours += rowHours;
+      });
+      kpiHours.textContent = totalHours.toFixed(1);
+      kpiShifts.textContent = totalShifts;
+      kpiNights.textContent = nights;
+      kpiOff.textContent = offs;
+    }
+
+    function clearAll(){
+      if (!confirm('Clear all roster entries?')) return;
+      tbody.innerHTML = '';
+      recalc();
+    }
+
+    function toJSON(){
+      return {
+        meta: {
+          hospital: hospital.value, manager: manager.value, week: week.value, notes: notes.value, fte: fte.value, defaultShift: defaultShift.value
+        },
+        rows: [...tbody.rows].map(r=>({
+          name: r.cells[0].querySelector('input').value,
+          role: r.cells[1].querySelector('select').value,
+          shifts: DAYS.map((d,i)=>{
+            const sel = r.cells[2+i].querySelector('select');
+            return sel.value==='CUS' ? {code:'CUS', label: sel.dataset.customLabel||'Custom', hours: parseFloat(sel.dataset.customHours||'0')||0} : {code: sel.value};
+          })
+        }))
+      };
+    }
+
+    function fromJSON(data){
+      if (!data) return; clearAll();
+      hospital.value = data.meta?.hospital || '';
+      manager.value = data.meta?.manager || '';
+      week.value = data.meta?.week || '';
+      notes.value = data.meta?.notes || '';
+      fte.value = data.meta?.fte || '';
+      defaultShift.value = data.meta?.defaultShift || 'AM';
+      (data.rows||[]).forEach(row=>{
+        const pre = { name: row.name||'', role: row.role||'RN', shifts:{} };
+        DAYS.forEach((d,i)=>{
+          const s = row.shifts?.[i];
+          if (!s) return pre.shifts[d] = 'OFF';
+          if (s.code==='CUS') pre.shifts[d] = 'CUS'; else pre.shifts[d] = s.code;
+        });
+        addRow(pre);
+        const last = tbody.lastElementChild;
+        DAYS.forEach((d,i)=>{
+          const sel = last.cells[2+i].querySelector('select');
+          const s = row.shifts?.[i];
+          if (s && s.code==='CUS'){
+            sel.value='CUS'; sel.dataset.customLabel = s.label||'Custom'; sel.dataset.customHours = String(s.hours||0);
+          }
+        });
+      });
+      recalc();
+    }
+
+    function downloadCSV(){
+      const meta = toJSON().meta;
+      const header = ["Hospital/Ward","Rostered By","Week Commencing","Notes","Target FTE","Name","Role",...DAYS,"Total Hours"];
+      const rows = [];
+      [...tbody.rows].forEach(r=>{
+        let rowHours=0; const out=[meta.hospital, meta.manager, meta.week, meta.notes, meta.fte];
+        out.push(r.cells[0].querySelector('input').value);
+        out.push(r.cells[1].querySelector('select').value);
+        DAYS.forEach((d,i)=>{
+          const sel = r.cells[2+i].querySelector('select');
+          const label = labelFor(sel);
+          out.push(label);
+          rowHours += hoursFor(sel);
+        });
+        out.push(rowHours.toFixed(1));
+        rows.push(out);
+      });
+      const csv = [header.join(','), ...rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(','))].join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `Roster_${meta.week||'week'}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function saveLocal(){
+      const key = 'roster.template.v1';
+      localStorage.setItem(key, JSON.stringify(toJSON()));
+      alert('Saved to this browser.');
+    }
+
+    function loadLocal(){
+      const key = 'roster.template.v1';
+      const data = localStorage.getItem(key);
+      if (!data) return alert('No saved roster found in this browser.');
+      fromJSON(JSON.parse(data));
+    }
+
+    // --- Events ---
+    addRowBtn.addEventListener('click', ()=> addRow());
+    removeRowBtn.addEventListener('click', ()=> { if (tbody.lastElementChild) { tbody.lastElementChild.remove(); recalc(); } });
+    clearBtn.addEventListener('click', clearAll);
+    csvBtn.addEventListener('click', downloadCSV);
+    saveBtn.addEventListener('click', saveLocal);
+    loadBtn.addEventListener('click', loadLocal);
+    printBtn.addEventListener('click', ()=> window.print());
+
+    // Seed with two empty rows for convenience
+    addRow(); addRow();
+  </script>
+</body>
+</html>
