@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon Media Hub — AI‑Powered Media Tracker & Recommender</title>
+  <style>
+    :root{
+      --bg:#0b0f14;          /* Deep space */
+      --panel:#111826;       /* Panel */
+      --muted:#6b7280;       /* Slate */
+      --text:#e5e7eb;        /* Light text */
+      --neon1:#00e7ff;       /* Cyan */
+      --neon2:#ff00b8;       /* Magenta */
+      --neon3:#b0ff00;       /* Lime */
+      --warn:#ffb020;
+      --ok:#22c55e;
+      --bad:#ef4444;
+      --shadow: 0 0 0.5rem rgba(0,231,255,.45), 0 0 1.2rem rgba(255,0,184,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:radial-gradient(1200px 800px at 10% -10%, rgba(0,231,255,.08), transparent 60%),
+      radial-gradient(1000px 900px at 110% 10%, rgba(255,0,184,.06), transparent 60%),
+      var(--bg);
+      color:var(--text);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    a{color:var(--neon1);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* Layout */
+    .app{display:grid;grid-template-columns:260px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+    header{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1f2937;background:linear-gradient(180deg, rgba(255,255,255,.025), transparent)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 180deg at 50% 50%, var(--neon1), var(--neon2), var(--neon3), var(--neon1));filter:saturate(130%);box-shadow:var(--shadow)}
+    .title{font-weight:800;letter-spacing:.3px}
+    .subtitle{color:var(--muted);font-size:.9rem}
+
+    .sidebar{border-right:1px solid #1f2937;background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);padding:16px;display:flex;flex-direction:column;gap:12px}
+    .section{display:none;padding:20px 22px 40px}
+    .section.active{display:block}
+
+    /* Buttons */
+    .btn{--c:var(--neon1);background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid color-mix(in oklab, var(--c) 45%, #1f2937 55%);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s transform, .2s box-shadow, .2s border-color;box-shadow:0 0 0 .5px rgba(255,255,255,.05), 0 0 14px color-mix(in oklab, var(--c) 30%, transparent)}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 0 0 .5px rgba(255,255,255,.08), 0 0 22px color-mix(in oklab, var(--c) 50%, transparent)}
+    .btn:active{transform:translateY(0)}
+    .btn.neon1{--c:var(--neon1)}
+    .btn.neon2{--c:var(--neon2)}
+    .btn.neon3{--c:var(--neon3)}
+    .btn.warn{--c:var(--warn)}
+    .btn.ok{--c:var(--ok)}
+    .btn.bad{--c:var(--bad)}
+    .btn.block{width:100%;text-align:center}
+    .btn.ghost{background:transparent}
+    .btn.small{padding:6px 10px;border-radius:10px;font-size:.9rem}
+
+    .nav{display:grid;gap:10px}
+    .nav .btn{justify-content:flex-start}
+
+    /* Cards */
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));border:1px solid #1f2a3c;border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:repeat(3, 1fr)}
+    @media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{grid-row:2}.grid.cols-3{grid-template-columns:1fr}.grid.cols-2{grid-template-columns:1fr}}
+
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px dashed #344155;color:var(--text);margin:4px;background:rgba(255,255,255,.02)}
+    .input, textarea, select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #283446;background:#0c131f;color:var(--text)}
+    textarea{min-height:110px}
+
+    .kpi{display:flex;gap:12px;flex-wrap:wrap}
+    .kpi .box{flex:1 1 180px;border-radius:14px;border:1px solid #22314a;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,.02), transparent)}
+    .kpi .num{font-weight:800;font-size:1.6rem}
+
+    .tag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;border:1px solid #2a3a58;margin:3px;background:#101929}
+
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid #1f2a3c;padding:10px;text-align:left}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+
+    .hint{color:var(--muted);font-size:.92rem}
+    .status{font-size:.9rem;opacity:.9}
+
+    .floating-chat{position:fixed;right:18px;bottom:18px;z-index:20}
+    .chat-panel{width:360px;max-width:90vw;background:var(--panel);border:1px solid #1f2a3c;border-radius:16px;box-shadow:var(--shadow);display:none}
+    .chat-panel.active{display:block}
+
+    .switch{position:relative;display:inline-block;width:52px;height:28px}
+    .switch input{display:none}
+    .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#374151;border-radius:999px;transition:.2s}
+    .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+    input:checked + .slider{background:linear-gradient(90deg, var(--neon1), var(--neon2))}
+    input:checked + .slider:before{transform:translateX(24px)}
+
+    .hero{display:flex;gap:18px;align-items:center}
+    .hero .spark{display:inline-flex;gap:8px}
+    .hero .spark .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 12px currentColor}
+    .dot.c1{background:var(--neon1);color:var(--neon1)}
+    .dot.c2{background:var(--neon2);color:var(--neon2)}
+    .dot.c3{background:var(--neon3);color:var(--neon3)}
+
+    .footer{color:#9aa4b2;font-size:.85rem;display:flex;gap:12px;flex-wrap:wrap}
+    .danger{color:var(--bad)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Neon Media Hub</div>
+          <div class="subtitle">Collate • Rate • Review • Recommend • Share</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center">
+        <button class="btn neon1 small" id="saveBtn">Save</button>
+        <button class="btn neon2 small" id="exportBtn">Export</button>
+        <label class="switch" title="Dark/Light (for fun; stays neon)"><input type="checkbox" id="lightToggle"><span class="slider"></span></label>
+        <button class="btn neon3 small" id="openChat">AI Chat</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="nav">
+        <button class="btn neon1 block" data-target="intro">1) Introduction</button>
+        <button class="btn neon2 block" data-target="library">2) Your Library</button>
+        <button class="btn neon3 block" data-target="recs">3) Recommendations</button>
+        <button class="btn neon1 block" data-target="communities">4) Communities</button>
+        <button class="btn neon2 block" data-target="share">5) Share & Sync</button>
+        <button class="btn neon3 block" data-target="settings">Settings</button>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div style="font-weight:700;margin-bottom:8px">Quick Stats</div>
+        <div class="kpi">
+          <div class="box"><div class="status">Items</div><div class="num" id="kpiItems">0</div></div>
+          <div class="box"><div class="status">Avg Rating</div><div class="num" id="kpiAvg">–</div></div>
+          <div class="box"><div class="status">Reviews</div><div class="num" id="kpiReviews">0</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- INTRODUCTION -->
+      <section id="intro" class="section active">
+        <div class="hero card">
+          <div>
+            <h1 style="margin:0 0 6px">Welcome — let’s tune your media universe</h1>
+            <p class="hint" style="margin:0">Choose what you consume, set favourites, and draft quick reviews. The AI uses this to personalise recommendations and a chat assistant.</p>
+            <div class="spark" aria-hidden="true"><div class="dot c1"></div><div class="dot c2"></div><div class="dot c3"></div></div>
+          </div>
+        </div>
+
+        <div class="grid cols-2" style="margin-top:16px">
+          <div class="card">
+            <h3 style="margin-top:0">What do you typically consume?</h3>
+            <div id="consumptionTypes" style="display:flex; gap:8px; flex-wrap:wrap">
+              <!-- buttons injected -->
+            </div>
+            <p class="hint">Tip: you can change this later in Settings.</p>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-top:0">Your current favourites</h3>
+            <div class="grid cols-2">
+              <div>
+                <label>Title</label>
+                <input class="input" id="favTitle" placeholder="e.g., The Witcher 3 / Dune / Disco Elysium / Polygon.com"/>
+              </div>
+              <div>
+                <label>Type</label>
+                <select class="input" id="favType"></select>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px">
+              <button class="btn neon1" id="addFav">Add Favourite</button>
+              <button class="btn ghost" id="clearFavs">Clear</button>
+            </div>
+            <div id="favList" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3 style="margin-top:0">Rapid review generator (AI‑assisted)</h3>
+          <div class="grid cols-3">
+            <div>
+              <label>Work Title</label>
+              <input class="input" id="rrTitle" placeholder="e.g., *Blade Runner 2049*"/>
+            </div>
+            <div>
+              <label>Type</label>
+              <select class="input" id="rrType"></select>
+            </div>
+            <div>
+              <label>Rating (1–10)</label>
+              <input class="input" id="rrRating" type="number" min="1" max="10" value="9"/>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top:10px">
+            <div>
+              <label>What you loved</label>
+              <input class="input" id="rrLoved" placeholder="world‑building, soundtrack, pacing…"/>
+            </div>
+            <div>
+              <label>What didn’t land</label>
+              <input class="input" id="rrDidnt" placeholder="thin characters, grindy mid‑game…"/>
+            </div>
+            <div>
+              <label>Vibe</label>
+              <select class="input" id="rrVibe">
+                <option>Balanced</option>
+                <option>Playful</option>
+                <option>Academic</option>
+                <option>Punchy one‑liner</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px">
+            <button class="btn neon2" id="genReview">Generate Review</button>
+            <button class="btn neon3" id="saveReview">Save to Library</button>
+            <button class="btn ghost" id="clearReview">Clear</button>
+          </div>
+          <textarea id="rrOut" class="input" placeholder="Your draft review will appear here…" style="margin-top:12px"></textarea>
+          <div class="hint">AI mode: <span id="aiMode">Local heuristics</span>. Add an OpenAI key in Settings to enable full AI.</div>
+        </div>
+      </section>
+
+      <!-- LIBRARY -->
+      <section id="library" class="section">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center">
+            <h2 style="margin:0">Your Library</h2>
+            <div style="display:flex; gap:8px">
+              <button class="btn neon1 small" id="addItem">Add Item</button>
+              <button class="btn ghost small" id="importBtn">Import</button>
+            </div>
+          </div>
+          <div class="hint">Track titles across TV/Films, Games, Books, and Websites. Attach tags, your rating, a Metacritic score, and a review.</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <table class="table mono" id="libTable" aria-label="Library table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Your Rating</th>
+                <th>Metacritic</th>
+                <th>Tags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="libTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin-top:0">Edit Item</h3>
+          <div class="grid cols-3">
+            <div>
+              <label>Type</label>
+              <select class="input" id="eType"></select>
+            </div>
+            <div>
+              <label>Title</label>
+              <input class="input" id="eTitle"/>
+            </div>
+            <div>
+              <label>Your Rating</label>
+              <input class="input" id="eRating" type="number" min="1" max="10"/>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top:10px">
+            <div>
+              <label>Tags (comma‑separated)</label>
+              <input class="input" id="eTags" placeholder="noir, sci‑fi, isometric…"/>
+            </div>
+            <div>
+              <label>Metacritic (manual)</label>
+              <input class="input" id="eMeta" type="number" min="0" max="100" placeholder="e.g., 88"/>
+            </div>
+            <div>
+              <label>Metacritic (auto, experimental)</label>
+              <div style="display:flex;gap:8px">
+                <input class="input" id="eMetaQuery" placeholder="search terms"/>
+                <button class="btn small neon1" id="fetchMeta">Fetch</button>
+              </div>
+              <div class="hint">Uses a CORS reader to parse Metacritic search results. May fail depending on title/region.</div>
+            </div>
+          </div>
+          <label style="margin-top:10px; display:block">Your Review</label>
+          <textarea id="eReview" class="input" placeholder="Write or paste your review…"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn ok" id="saveEdit">Save Changes</button>
+            <button class="btn warn" id="aiPolish">AI Polish</button>
+            <button class="btn bad" id="deleteItem">Delete</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECOMMENDATIONS -->
+      <section id="recs" class="section">
+        <div class="card">
+          <h2 style="margin:0">Recommendations</h2>
+          <p class="hint">We combine your favourites, ratings, and tags with AI prompts to surface things you might enjoy next.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="recFilters"></div>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn neon2" id="genRecs">Generate Recommendations</button>
+            <button class="btn ghost" id="clearRecs">Clear</button>
+          </div>
+        </div>
+        <div class="grid cols-3" id="recCards" style="margin-top:12px"></div>
+      </section>
+
+      <!-- COMMUNITIES -->
+      <section id="communities" class="section">
+        <div class="card">
+          <h2 style="margin:0">Communities & Conversations</h2>
+          <p class="hint">Find your people. We generate quick links to relevant subreddits and discussion hubs based on your library and tags.</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap" id="comTags"></div>
+        </div>
+        <div class="grid cols-3" id="comLinks" style="margin-top:12px"></div>
+      </section>
+
+      <!-- SHARE -->
+      <section id="share" class="section">
+        <div class="card">
+          <h2 style="margin:0">Share & Sync</h2>
+          <div class="grid cols-2" style="margin-top:10px">
+            <div>
+              <label>Export JSON</label>
+              <textarea id="shareJson" class="input" readonly></textarea>
+              <div style="display:flex; gap:8px; margin-top:10px">
+                <button class="btn neon1" id="copyJson">Copy</button>
+                <button class="btn neon2" id="downloadJson">Download</button>
+                <button class="btn ghost" id="refreshJson">Refresh</button>
+              </div>
+              <p class="hint">You can share this file or paste it into someone else’s Import.</p>
+            </div>
+            <div>
+              <label>Import JSON</label>
+              <textarea id="importJson" class="input" placeholder='Paste JSON here then click "Import" in Library.'></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin-top:0">Share Card (image)</h3>
+          <canvas id="shareCanvas" width="1080" height="540" style="width:100%;max-width:100%"></canvas>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn neon3" id="renderCard">Render from Library</button>
+            <button class="btn neon1" id="downloadCard">Download PNG</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="settings" class="section">
+        <div class="card">
+          <h2 style="margin:0">Settings</h2>
+          <div class="grid cols-3" style="margin-top:10px">
+            <div>
+              <label>Active Types</label>
+              <div id="settingsTypes"></div>
+            </div>
+            <div>
+              <label>OpenAI API Key (optional)</label>
+              <input class="input" id="apiKey" placeholder="sk-…"/>
+              <div class="hint">Stored locally in your browser and used for AI reviews & recommendations. Leave blank to use local heuristics.</div>
+              <button class="btn small neon2" id="saveKey" style="margin-top:8px">Save Key</button>
+              <button class="btn small ghost" id="clearKey" style="margin-top:8px">Clear Key</button>
+            </div>
+            <div>
+              <label>Privacy</label>
+              <div class="pill"><input type="checkbox" id="anonShare"/> <span>Anon share mode</span></div>
+              <div class="pill"><input type="checkbox" id="noTrack"/> <span>Block outbound fetches (safer)</span></div>
+              <div class="hint">Disable external calls for maximum privacy. Some features (auto Metacritic, AI) may not work.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Floating Chat -->
+  <div class="floating-chat">
+    <div class="chat-panel" id="chatPanel">
+      <div style="padding:12px 12px 0; display:flex; justify-content:space-between; align-items:center">
+        <div style="font-weight:700">Neon Assistant</div>
+        <button class="btn small ghost" id="closeChat">Close</button>
+      </div>
+      <div id="chatLog" style="height:300px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+      <div style="padding:12px; display:flex; gap:8px">
+        <input id="chatInput" class="input" placeholder="Ask for recs, summaries, comparisons…"/>
+        <button class="btn neon1" id="chatSend">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // --- State ---
+  const DEFAULT_TYPES = ["TV/Film","Game","Book","Website"];
+  const state = {
+    types: [...DEFAULT_TYPES],
+    favourites: [],
+    library: [],
+    selectedIndex: -1,
+    apiKey: localStorage.getItem('nmh_apiKey') || '',
+    flags: { anonShare:false, noTrack:false },
+  };
+
+  // --- Helpers ---
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+  const save = () => { localStorage.setItem('nmh_state', JSON.stringify(state)); refreshStats(); refreshShare(); };
+  const load = () => { const raw = localStorage.getItem('nmh_state'); if(raw){ try{ const obj = JSON.parse(raw); Object.assign(state, obj);}catch(e){} } };
+
+  function toast(msg){
+    const el = document.createElement('div');
+    el.textContent = msg; el.className='pill'; el.style.position='fixed'; el.style.left='50%'; el.style.bottom='18px'; el.style.transform='translateX(-50%)'; el.style.zIndex=99; el.style.background='rgba(0,231,255,.1)'; el.style.borderColor='var(--neon1)'; document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1800);
+  }
+
+  function navTo(id){ $$('.section').forEach(s=>s.classList.remove('active')); $('#'+id).classList.add('active'); }
+
+  // --- Initialise UI controls ---
+  function initTypesSelects(){
+    const selects = ['favType','rrType','eType'];
+    selects.forEach(id=>{ const el = $('#'+id); el.innerHTML=''; state.types.forEach(t=>{ const o=document.createElement('option'); o.textContent=t; el.appendChild(o); }); });
+  }
+
+  function renderConsumptionButtons(){
+    const wrap = $('#consumptionTypes'); wrap.innerHTML='';
+    DEFAULT_TYPES.forEach(t=>{
+      const active = state.types.includes(t);
+      const b = document.createElement('button');
+      b.className='btn small '+(active?'neon2':'ghost');
+      b.textContent=t; b.onclick = ()=>{ const i = state.types.indexOf(t); if(i>=0){ state.types.splice(i,1);} else { state.types.push(t);} initTypesSelects(); renderConsumptionButtons(); renderSettingsTypes(); save(); };
+      wrap.appendChild(b);
+    });
+  }
+
+  function renderSettingsTypes(){
+    const wrap = $('#settingsTypes'); wrap.innerHTML='';
+    DEFAULT_TYPES.forEach(t=>{
+      const chk = document.createElement('label');
+      chk.className='pill';
+      const input = document.createElement('input'); input.type='checkbox'; input.checked = state.types.includes(t);
+      input.onchange=()=>{ const i = state.types.indexOf(t); if(input.checked && i<0) state.types.push(t); if(!input.checked && i>=0) state.types.splice(i,1); initTypesSelects(); renderConsumptionButtons(); save(); };
+      const span = document.createElement('span'); span.textContent=t;
+      chk.append(input, span); wrap.appendChild(chk);
+    });
+  }
+
+  function renderFavs(){
+    const wrap = $('#favList'); wrap.innerHTML='';
+    if(state.favourites.length===0){ wrap.innerHTML = '<div class="hint">No favourites yet.</div>'; return; }
+    state.favourites.forEach((f,i)=>{
+      const pill = document.createElement('div'); pill.className='pill';
+      const s = document.createElement('span'); s.textContent = `${f.type}: ${f.title}`;
+      const del = document.createElement('button'); del.className='btn small ghost'; del.textContent='×'; del.title='Remove'; del.onclick = ()=>{ state.favourites.splice(i,1); renderFavs(); save(); };
+      pill.append(s, del); wrap.appendChild(pill);
+    });
+  }
+
+  // Library rendering
+  function renderTable(){
+    const tbody = $('#libTbody'); tbody.innerHTML='';
+    state.library.forEach((it,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.type}</td>
+        <td>${it.title}</td>
+        <td>${it.rating ?? ''}</td>
+        <td>${it.metacritic ?? ''}</td>
+        <td>${(it.tags||[]).join(', ')}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn small neon1" data-act="edit" data-i="${i}">Edit</button>
+          <a class="btn small ghost" href="https://www.metacritic.com/search/${encodeURIComponent((it.type||'').toLowerCase())}/${encodeURIComponent(it.title)}/results/" target="_blank" rel="noopener">Metacritic</a>
+          <a class="btn small ghost" href="https://www.reddit.com/search/?q=${encodeURIComponent(it.title)}" target="_blank" rel="noopener">Reddit</a>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    // bind edits
+    $$('#libTbody [data-act="edit"]').forEach(btn=>{
+      btn.onclick = ()=>{ state.selectedIndex = Number(btn.dataset.i); loadEditForm(); };
+    });
+  }
+
+  function loadEditForm(){
+    const it = state.library[state.selectedIndex]; if(!it){ $('#eTitle').value=''; $('#eReview').value=''; return; }
+    $('#eType').value = it.type || state.types[0];
+    $('#eTitle').value = it.title || '';
+    $('#eRating').value = it.rating ?? '';
+    $('#eTags').value = (it.tags||[]).join(', ');
+    $('#eMeta').value = it.metacritic ?? '';
+    $('#eMetaQuery').value = `${it.title}`;
+    $('#eReview').value = it.review || '';
+  }
+
+  function refreshStats(){
+    $('#kpiItems').textContent = state.library.length;
+    const ratings = state.library.map(x=>Number(x.rating)).filter(n=>!isNaN(n));
+    $('#kpiAvg').textContent = ratings.length? mean(ratings).toFixed(1) : '–';
+    const reviews = state.library.filter(x=> (x.review||'').trim().length>0).length;
+    $('#kpiReviews').textContent = reviews;
+  }
+
+  function refreshShare(){
+    $('#shareJson').value = JSON.stringify({types:state.types,favourites:state.favourites,library:state.library}, null, 2);
+  }
+
+  // --- AI helpers ---
+  function aiEnabled(){ return !!state.apiKey && !state.flags.noTrack; }
+  function setAIModeLabel(){ $('#aiMode').textContent = aiEnabled()? 'OpenAI (live)' : 'Local heuristics'; }
+
+  async function openaiChat(messages){
+    const body = { model: 'gpt-4o-mini', messages, temperature: 0.7 };
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+state.apiKey }, body: JSON.stringify(body)
+    });
+    if(!res.ok){ throw new Error('OpenAI error: '+res.status); }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  }
+
+  function localReview({title,type,rating,loved,didnt,vibe}){
+    const bits = [];
+    if(vibe==='Punchy one‑liner') return `${title} is a ${type.toLowerCase()} I ${rating>=8?'highly recommend':'found mixed'} — ${loved||'strong moments'}${didnt?`, but ${didnt}`:''}.`;
+    bits.push(`${title} (${type}) — ${rating}/10.`);
+    if(loved) bits.push(`Loved: ${loved}.`);
+    if(didnt) bits.push(`Less effective: ${didnt}.`);
+    if(vibe==='Academic') bits.push(`Overall, the work demonstrates notable ${loved||'craft'}, offset by ${didnt||'minor limitations'}.`);
+    if(vibe==='Playful') bits.push(`Vibes: neon‑bright fun with ${loved||'good energy'}.`);
+    return bits.join(' ');
+  }
+
+  // --- Metacritic fetch (experimental) ---
+  async function fetchMetacriticScore(q){
+    // Uses Jina AI reader to bypass CORS and parse first score if visible.
+    // Not guaranteed; falls back to empty.
+    const url = `https://r.jina.ai/http://www.metacritic.com/search/all/${encodeURIComponent(q)}/results/`;
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('Fetch failed');
+      const text = await res.text();
+      const m = text.match(/metascore_w\s+large\s+game\s+positive[^>]*>(\d{2,3})</) || text.match(/metascore_w\s+large[^>]*>(\d{2,3})</);
+      return m? Number(m[1]) : null;
+    }catch(e){ return null; }
+  }
+
+  // --- Recommendations (simple heuristic + optional AI) ---
+  const seedCatalogue = [
+    {type:'Game', title:'Disco Elysium', tags:['isometric','narrative','rpg','detective']},
+    {type:'Game', title:'Hades', tags:['roguelike','action']},
+    {type:'Game', title:'Baldur\'s Gate 3', tags:['rpg','party','story']},
+    {type:'TV/Film', title:'Blade Runner 2049', tags:['sci‑fi','noir','auteur']},
+    {type:'TV/Film', title:'Andor', tags:['sci‑fi','political','serial']},
+    {type:'Book', title:'Dune', tags:['sci‑fi','classic','politics']},
+    {type:'Book', title:'The Left Hand of Darkness', tags:['sci‑fi','gender','classic']},
+    {type:'Website', title:'Polygon', tags:['games','culture']},
+    {type:'Website', title:'RogerEbert.com', tags:['film','criticism']},
+  ];
+
+  function recHeuristic(){
+    const favTags = new Set();
+    state.library.concat(state.favourites).forEach(x=> (x.tags||[]).forEach(t=>favTags.add(slug(t))));
+    const likedTypes = new Set(state.types);
+
+    const scored = seedCatalogue.map(item=>{
+      let s = 0;
+      if(likedTypes.has(item.type)) s += 1;
+      (item.tags||[]).forEach(t=>{ if(favTags.has(slug(t))) s += 1; });
+      // bump if same title appears in favs' universe
+      const titleMatch = state.favourites.some(f=> slug(f.title).includes(slug(item.title)) || slug(item.title).includes(slug(f.title)) );
+      if(titleMatch) s += 1.5;
+      return {...item, score:s};
+    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,9);
+    return scored;
+  }
+
+  async function makeRecCards(){
+    const wrap = $('#recCards'); wrap.innerHTML='';
+    const list = recHeuristic();
+    let aiExtras = [];
+    if(aiEnabled()){
+      try{
+        const prompt = `Given favourites ${JSON.stringify(state.favourites)} and library (title, type, rating, tags): ${JSON.stringify(state.library.map(({title,type,rating,tags})=>({title,type,rating,tags})))}, suggest 6 additional cross‑media items with 8‑word hooks.`;
+        const out = await openaiChat([{role:'user', content: prompt}]);
+        aiExtras = out.split(/\n|\u2022|\-/).map(s=>s.trim()).filter(Boolean).slice(0,6).map(t=>({type:'Mixed', title:t.replace(/^\d+\.|^\*\s*/,'').trim(), tags:[], score:1}));
+      }catch(e){ /* ignore */ }
+    }
+
+    [...list, ...aiExtras].slice(0,12).forEach(item=>{
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+          <div>
+            <div style="font-weight:700">${item.title}</div>
+            <div class="hint">${item.type} • ${item.tags?.join(', ') || '—'}</div>
+          </div>
+          <div style="display:flex; gap:8px">
+            <a class="btn small neon1" target="_blank" rel="noopener" href="https://www.metacritic.com/search/${encodeURIComponent((item.type||'').toLowerCase())}/${encodeURIComponent(item.title)}/results/">Metacritic</a>
+            <a class="btn small neon2" target="_blank" rel="noopener" href="https://www.reddit.com/search/?q=${encodeURIComponent(item.title)}">Reddit</a>
+            <button class="btn small neon3" data-add="${encodeURIComponent(item.title)}">Add</button>
+          </div>
+        </div>`;
+      wrap.appendChild(card);
+    });
+
+    // bind Add buttons
+    $$('#recCards [data-add]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const title = decodeURIComponent(btn.getAttribute('data-add'));
+        state.library.push({type:'Mixed', title, rating:'', tags:[], metacritic:'', review:''});
+        renderTable(); refreshStats(); save(); toast('Added to library');
+      };
+    });
+  }
+
+  // Communities
+  function buildCommunityTags(){
+    const set = new Set();
+    state.library.forEach(it=> (it.tags||[]).forEach(t=> set.add(slug(t))));
+    state.favourites.forEach(f=> set.add(slug(f.type)));
+    return Array.from(set).slice(0,30);
+  }
+  function renderCommunities(){
+    const tags = buildCommunityTags(); const wrapT = $('#comTags'), wrapL = $('#comLinks');
+    wrapT.innerHTML=''; wrapL.innerHTML='';
+    tags.forEach(tag=>{
+      const b = document.createElement('button'); b.className='btn small neon1'; b.textContent = tag; b.onclick = ()=>{
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `
+          <div style="font-weight:700">#${tag}</div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+            <a class="btn small ghost" target="_blank" rel="noopener" href="https://www.reddit.com/r/${encodeURIComponent(tag)}/">r/${tag}</a>
+            <a class="btn small ghost" target="_blank" rel="noopener" href="https://www.reddit.com/search/?q=${encodeURIComponent(tag)}">Reddit search</a>
+            <a class="btn small ghost" target="_blank" rel="noopener" href="https://kagi.com/search?q=${encodeURIComponent(tag+' forum')}">Web forums</a>
+            <a class="btn small ghost" target="_blank" rel="noopener" href="https://discord.com/search?q=${encodeURIComponent(tag)}">Discord</a>
+          </div>`;
+        wrapL.prepend(card);
+      };
+      wrapT.appendChild(b);
+    });
+  }
+
+  // Share card
+  function renderShareCard(){
+    const c = $('#shareCanvas'); const ctx = c.getContext('2d');
+    // background
+    const g = ctx.createLinearGradient(0,0,c.width,c.height);
+    g.addColorStop(0,'#0b0f14'); g.addColorStop(1,'#141b2a'); ctx.fillStyle = g; ctx.fillRect(0,0,c.width,c.height);
+    // title
+    ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 40px system-ui'; ctx.fillText('Neon Media Hub — My Highlights', 28, 58);
+    // items
+    const top = state.library.slice(0,6);
+    ctx.font = '24px system-ui';
+    let y = 110; const lineH = 42;
+    top.forEach((it,i)=>{ const t = `${i+1}. ${it.title}  ·  ${it.type}  ·  ${it.rating||'–'}/10`; ctx.fillText(t, 36, y); y+=lineH; });
+    // footer
+    ctx.font = '16px system-ui'; ctx.fillStyle = '#9aa4b2'; ctx.fillText('Exported from Neon Media Hub', 28, c.height-28);
+  }
+
+  // Chat assistant
+  function chatAdd(role, text){
+    const log = $('#chatLog'); const b = document.createElement('div'); b.className='card'; b.style.padding='10px'; b.innerHTML=`<div class="status">${role}</div><div>${text}</div>`; log.appendChild(b); log.scrollTop = log.scrollHeight; }
+
+  async function chatHandle(userText){
+    chatAdd('You', userText);
+    const libBrief = state.library.slice(0,40).map(x=>`${x.type}: ${x.title} (${x.rating||'–'}/10) [${(x.tags||[]).slice(0,3).join('/')}]`).join('; ');
+    const base = `You are an enthusiastic, concise media concierge for Australian English users. Recommend across TV/films, games, books, and websites. Prefer works aligned with the user's tastes. Provide 3–5 suggestions with one‑line hooks and include a Metacritic search link per item.`;
+    const prompt = `${base}\n\nUser: ${userText}\n\nLibrary: ${libBrief}`;
+
+    let reply='';
+    if(aiEnabled()){
+      try{ reply = await openaiChat([{role:'system', content: base},{role:'user', content: userText+"\n\nLibrary: "+libBrief}]); }catch(e){ reply='(AI error, falling back) '+e.message; }
+    }
+    if(!reply){ // local fallback
+      const picks = recHeuristic().slice(0,4).map(x=>`• ${x.title} — ${x.type}. Search Metacritic: https://www.metacritic.com/search/${encodeURIComponent(x.type.toLowerCase())}/${encodeURIComponent(x.title)}/results/`);
+      reply = picks.join('\n');
+    }
+    chatAdd('Neon Assistant', reply);
+  }
+
+  // --- Event bindings ---
+  function bindEvents(){
+    // nav
+    $$('.nav .btn').forEach(b=> b.onclick = ()=> navTo(b.dataset.target));
+
+    // intro favs
+    $('#addFav').onclick = ()=>{
+      const title=$('#favTitle').value.trim(); const type=$('#favType').value; if(!title) return;
+      state.favourites.push({title, type}); $('#favTitle').value=''; renderFavs(); save();
+    };
+    $('#clearFavs').onclick = ()=>{ state.favourites.length=0; renderFavs(); save(); };
+
+    // rapid review
+    $('#genReview').onclick = async ()=>{
+      const payload = { title:$('#rrTitle').value.trim(), type:$('#rrType').value, rating:Number($('#rrRating').value||'0'), loved:$('#rrLoved').value.trim(), didnt:$('#rrDidnt').value.trim(), vibe:$('#rrVibe').value };
+      if(!payload.title){ toast('Please add a title'); return; }
+      if(aiEnabled()){
+        try{
+          const content = await openaiChat([{role:'system', content:'Write a concise review (70–120 words) in Australian English with a clear judgment, 1–2 specifics, and a one‑line kicker.'},{role:'user', content: JSON.stringify(payload)}]);
+          $('#rrOut').value = content;
+        }catch(e){ $('#rrOut').value = '(AI error — using local mode)\n'+localReview(payload); }
+      } else {
+        $('#rrOut').value = localReview(payload);
+      }
+    };
+    $('#saveReview').onclick = ()=>{
+      const title=$('#rrTitle').value.trim(); if(!title){ toast('No title'); return; }
+      const item = { type:$('#rrType').value, title, rating:Number($('#rrRating').value||'0'), tags:($('#rrLoved').value? $('#rrLoved').value.split(/,\s*/):[]), metacritic:'', review:$('#rrOut').value };
+      state.library.push(item); renderTable(); refreshStats(); save(); toast('Saved to library');
+    };
+    $('#clearReview').onclick = ()=>{ ['rrTitle','rrLoved','rrDidnt','rrOut'].forEach(id=>$('#'+id).value=''); $('#rrRating').value=9; };
+
+    // library add/import
+    $('#addItem').onclick = ()=>{ state.library.push({type:state.types[0], title:'New item', rating:'', tags:[], metacritic:'', review:''}); renderTable(); save(); };
+    $('#importBtn').onclick = ()=>{
+      try{ const obj = JSON.parse($('#importJson').value); if(obj?.library){ state.library = obj.library; state.types = obj.types||state.types; state.favourites = obj.favourites||state.favourites; initTypesSelects(); renderFavs(); renderConsumptionButtons(); renderSettingsTypes(); renderTable(); refreshStats(); save(); toast('Imported'); } }
+      catch(e){ alert('Invalid JSON'); }
+    };
+
+    // edit panel
+    $('#saveEdit').onclick = ()=>{
+      if(state.selectedIndex<0) return;
+      const it = state.library[state.selectedIndex];
+      it.type = $('#eType').value; it.title=$('#eTitle').value; it.rating=Number($('#eRating').value||''); it.tags=$('#eTags').value? $('#eTags').value.split(/,\s*/):[]; it.metacritic = $('#eMeta').value? Number($('#eMeta').value): '';
+      it.review = $('#eReview').value; renderTable(); refreshStats(); save(); toast('Saved');
+    };
+    $('#deleteItem').onclick = ()=>{ if(state.selectedIndex<0) return; if(confirm('Delete this item?')){ state.library.splice(state.selectedIndex,1); state.selectedIndex=-1; renderTable(); refreshStats(); save(); } };
+    $('#aiPolish').onclick = async ()=>{
+      if(state.selectedIndex<0) return; const it = state.library[state.selectedIndex];
+      if(aiEnabled()){
+        try{ const content = await openaiChat([{role:'system', content:'Rewrite concisely in Australian English with a clear verdict and 1–2 specifics. 70–110 words.'},{role:'user', content: it.review||''}]); $('#eReview').value = content; }catch(e){ toast('AI error'); }
+      } else { toast('Add an API key in Settings for AI polish.'); }
+    };
+    $('#fetchMeta').onclick = async ()=>{
+      if(state.flags.noTrack){ toast('Blocked by Privacy setting'); return; }
+      const q = $('#eMetaQuery').value.trim() || $('#eTitle').value.trim(); if(!q) return; const btn = $('#fetchMeta'); const old=btn.textContent; btn.textContent='Fetching…'; btn.disabled=true;
+      const score = await fetchMetacriticScore(q); btn.textContent=old; btn.disabled=false;
+      if(score!=null){ $('#eMeta').value = String(score); toast('Metacritic found'); } else { toast('No score found'); }
+    };
+
+    // recs
+    $('#genRecs').onclick = ()=>{ makeRecCards(); };
+    $('#clearRecs').onclick = ()=>{ $('#recCards').innerHTML=''; };
+
+    // share
+    $('#copyJson').onclick = ()=>{ navigator.clipboard.writeText($('#shareJson').value); toast('Copied'); };
+    $('#downloadJson').onclick = ()=>{ const blob = new Blob([$('#shareJson').value], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'neon-media-hub.json'; a.click(); };
+    $('#refreshJson').onclick = refreshShare;
+    $('#renderCard').onclick = ()=>{ renderShareCard(); toast('Rendered'); };
+    $('#downloadCard').onclick = ()=>{ const c=$('#shareCanvas'); const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download='neon-media-card.png'; a.click(); };
+
+    // header
+    $('#saveBtn').onclick = save;
+    $('#exportBtn').onclick = ()=>{ navTo('share'); refreshShare(); };
+    $('#lightToggle').onchange = (e)=>{ document.body.style.filter = e.target.checked? 'brightness(1.1) contrast(1.02)' : 'none'; };
+
+    // chat
+    $('#openChat').onclick = ()=>{ $('#chatPanel').classList.add('active'); };
+    $('#closeChat').onclick = ()=>{ $('#chatPanel').classList.remove('active'); };
+    $('#chatSend').onclick = ()=>{ const v = $('#chatInput').value.trim(); if(!v) return; $('#chatInput').value=''; chatHandle(v); };
+
+    // settings
+    $('#saveKey').onclick = ()=>{ state.apiKey = $('#apiKey').value.trim(); localStorage.setItem('nmh_apiKey', state.apiKey); setAIModeLabel(); toast('API key saved'); };
+    $('#clearKey').onclick = ()=>{ state.apiKey = ''; $('#apiKey').value=''; localStorage.removeItem('nmh_apiKey'); setAIModeLabel(); toast('API key cleared'); };
+    $('#anonShare').onchange = (e)=>{ state.flags.anonShare = !!e.target.checked; save(); };
+    $('#noTrack').onchange = (e)=>{ state.flags.noTrack = !!e.target.checked; setAIModeLabel(); save(); };
+  }
+
+  // --- Boot ---
+  function boot(){
+    load(); initTypesSelects(); renderConsumptionButtons(); renderSettingsTypes(); renderFavs(); renderTable(); refreshStats(); refreshShare(); renderCommunities(); setAIModeLabel();
+    $('#apiKey').value = state.apiKey || '';
+    // seed filters
+    const rf = $('#recFilters'); rf.innerHTML=''; state.types.forEach(t=>{ const b=document.createElement('button'); b.className='btn small ghost'; b.textContent=t; b.onclick=()=>{ /* reserved for future filter logic */ }; rf.appendChild(b); });
+    bindEvents();
+  }
+  boot();
+  </script>
+
+  <noscript>
+    <div style="padding:20px" class="danger">This app needs JavaScript to run.</div>
+  </noscript>
+</body>
+</html>
